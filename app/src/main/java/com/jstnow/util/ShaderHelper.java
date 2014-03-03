@@ -29,12 +29,12 @@ public class ShaderHelper {
 
     private static final String TAG = "ShaderHelper";
 
-    public static final int compileVertexShader(String shaderSourceCode) {
+    private static final int compileVertexShader(String shaderSourceCode) {
 
         return compileShader(GL_VERTEX_SHADER, shaderSourceCode);
     }
 
-    public static final int compileFragmentShader(String shaderSourceCode) {
+    private static final int compileFragmentShader(String shaderSourceCode) {
 
         return compileShader(GL_FRAGMENT_SHADER, shaderSourceCode);
     }
@@ -49,14 +49,14 @@ public class ShaderHelper {
 
         glShaderSource(shaderId, shaderSoruceCode);
         glCompileShader(shaderId);
-       glGetShaderiv(shaderId, GL_COMPILE_STATUS, shaderCompileStatus, 0);
+        glGetShaderiv(shaderId, GL_COMPILE_STATUS, shaderCompileStatus, 0);
         if (shaderCompileStatus[0] == 0) {
 
             if (LoggerHelper.ON) {
                 glDeleteShader(shaderId);
                 Log.e(TAG,
                         "Error while comping shader. Shader source code: " + "\n" + shaderSoruceCode
-                                + "\n" + "::::"+glGetShaderInfoLog(shaderId));
+                                + "\n" + "::::" + glGetShaderInfoLog(shaderId));
 
 
             }
@@ -70,7 +70,7 @@ public class ShaderHelper {
 
     }
 
-    public static final int linkProgram(int vertexShaderId, int fragmentShaderId) {
+    private static final int linkProgram(int vertexShaderId, int fragmentShaderId) {
 
         int programId = glCreateProgram();
 
@@ -96,20 +96,35 @@ public class ShaderHelper {
         return programId;
     }
 
-    public static final boolean validateProgram(int programId){
+    public static final boolean validateProgram(int programId) {
 
         glValidateProgram(programId);
         int[] validateStatus = new int[1];
 
-        glGetProgramiv(programId,GL_VALIDATE_STATUS,validateStatus,0);
+        glGetProgramiv(programId, GL_VALIDATE_STATUS, validateStatus, 0);
 
-        if(validateStatus[0]==0){
+        if (validateStatus[0] == 0) {
 
-            Log.e(TAG,"Validation Error: " + glGetProgramInfoLog(programId) );
+            Log.e(TAG, "Validation Error: " + glGetProgramInfoLog(programId));
         }
 
 
-        return validateStatus[0]!=0;
+        return validateStatus[0] != 0;
     }
+
+    public static final int buildProgram(String vertexShaderSource,
+                                   String fragmentShaderSource) {
+        int program;
+    // Compile the shaders.
+        int vertexShader = compileVertexShader(vertexShaderSource);
+        int fragmentShader = compileFragmentShader(fragmentShaderSource);
+    // Link them into a shader program.
+        program = linkProgram(vertexShader, fragmentShader);
+        if (LoggerHelper.ON) {
+            validateProgram(program);
+        }
+        return program;
+    }
+
 
 }

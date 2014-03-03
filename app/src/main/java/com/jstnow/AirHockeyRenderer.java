@@ -1,9 +1,14 @@
 package com.jstnow;
 
+import com.jstnow.objects.Mallet;
+import com.jstnow.objects.Table;
+import com.jstnow.programs.ColorShaderProgram;
+import com.jstnow.programs.TextureShaderProgram;
 import com.jstnow.util.GLSLSourceLoader;
 import com.jstnow.util.LoggerHelper;
 import com.jstnow.util.MatrixHelper;
 import com.jstnow.util.ShaderHelper;
+import com.jstnow.util.TextureHelper;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
@@ -59,69 +64,38 @@ public class AirHockeyRenderer implements GLSurfaceView.Renderer {
 
     float[] matrix = new float[16];
 
-    private final float[] projectionMatrix = new float[16];
 
-    private final float[] modelMatrix = new float[16];
 
     final private Context mContext;
 
-    final private FloatBuffer vertexData;
 
-    final private float[] vertexDataArray = {
-            // Order of coordinates: X, Y, Z, W, R, G, B
 
-            // Triangle Fan
-            0f,    0f, 0f, 1.5f,   1f,   1f,   1f,
-            -0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f,
-            0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f,
-            0.5f,  0.8f, 0f,   2f, 0.7f, 0.7f, 0.7f,
-            -0.5f,  0.8f, 0f,   2f, 0.7f, 0.7f, 0.7f,
-            -0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f,
-
-            // Line 1
-            -0.5f, 0f, 0f, 1.5f, 1f, 0f, 0f,
-            0.5f, 0f, 0f, 1.5f, 1f, 0f, 0f,
-
-            // Mallets
-            0f, -0.4f, 0f, 1.25f, 0f, 0f, 1f,
-            0f,  0.4f, 0f, 1.75f, 1f, 0f, 0f
-    };
+    private final float[] projectionMatrix = new float[16];
+    private final float[] modelMatrix = new float[16];
+    private Table table;
+    private Mallet mallet;
+    private TextureShaderProgram textureProgram;
+    private ColorShaderProgram colorProgram;
+    private int texture;
 
 
     public AirHockeyRenderer(Context context) {
 
         mContext = context;
-        vertexData = ByteBuffer.allocateDirect(vertexDataArray.length * BYTES_PER_FLOAT).order(
-                ByteOrder.nativeOrder()).asFloatBuffer();
-        vertexData.put(vertexDataArray);
 
     }
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
         glClearColor(0f, 0f, 0f, 0f);
-        final int vertexShaderId = ShaderHelper.compileVertexShader(
-                GLSLSourceLoader.shaderSourceLoder(mContext, R.raw.vertex_shader));
-        final int fragmentShaderId = ShaderHelper.compileFragmentShader(
-                GLSLSourceLoader.shaderSourceLoder(mContext, R.raw.fragment_shader));
-        final int programId = ShaderHelper.linkProgram(vertexShaderId, fragmentShaderId);
-        glUseProgram(programId);
-        if (LoggerHelper.ON) {
 
-            ShaderHelper.validateProgram(programId);
-        }
+        table = new Table();
+        mallet = new Mallet();
+        textureProgram = new TextureShaderProgram(mContext);
+        colorProgram = new ColorShaderProgram(mContext);
+        texture = TextureHelper.loadTexture(mContext, R.drawable.air_hockey_surface);
+        
 
-        vertexData.position(0);
-        int positionLocation = glGetAttribLocation(programId, A_POS);
-        int colorLocation = glGetAttribLocation(programId, A_COL);
-        glVertexAttribPointer(positionLocation, POSITION_ATTR_COUNT, GL_FLOAT, false, STRIDE,
-                vertexData);
-        glEnableVertexAttribArray(positionLocation);
-        vertexData.position(POSITION_ATTR_COUNT);
-        glVertexAttribPointer(colorLocation, COLOR_ATTR_COUNT, GL_FLOAT, false, STRIDE,
-                vertexData);
-        glEnableVertexAttribArray(colorLocation);
-        uMatrixLocation = glGetUniformLocation(programId, U_MAT);
 
 
     }
@@ -155,16 +129,16 @@ public class AirHockeyRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl10) {
 
         glClear(GL_COLOR_BUFFER_BIT);
-        glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0);
-
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
-
-        glDrawArrays(GL_LINES, 6, 2);
-
-        glDrawArrays(GL_POINTS, 8, 1);
-
-        glDrawArrays(GL_POINTS, 9, 1);
-
+        // Draw the table.
+        textureProgram.useProgram();
+        textureProgram.setUniforms(projectionMatrix, texture);
+        table.bindData(textureProgram);
+        table.draw();
+// Draw the mallets.
+        colorProgram.useProgram();
+        colorProgram.setUniforms(projectionMatrix);
+        mallet.bindData(colorProgram);
+        mallet.draw();
 
     }
 }
